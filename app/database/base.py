@@ -1,10 +1,3 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-
-SQLALCHEMY_DATABASE_URL = 'postgresql://admin_15gg:admin_15gg@127.0.0.1:5432/db_15gg'
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
+from app.database.base_class import Base
+from app.models.code import Code
+from app.models.game import Game
