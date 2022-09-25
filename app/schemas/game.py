@@ -1,16 +1,20 @@
 from pydantic import BaseModel
 
 
-class CodeBase(BaseModel):
-    id: int
-    data: str | None
+class GameBase(BaseModel):
+    data: str
 
 
-class CodeCreate(CodeBase):
+class GameCreate(GameBase):
     pass
 
 
-class Code(CodeBase):
+class GameUpdate(GameBase):
+    pass
+
+
+class Game(GameBase):
+    id: int
 
     class Config:
         orm_mode = True
