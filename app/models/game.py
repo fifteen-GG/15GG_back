@@ -1,8 +1,6 @@
-from enum import unique
-from operator import index
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String
 
-from database import Base
+from app.database.base_class import Base
 
 
 class Game(Base):
