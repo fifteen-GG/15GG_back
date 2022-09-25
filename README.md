@@ -31,21 +31,26 @@ DB_NAME="db_15gg"
 
 The project directory should be like
 ```
-app/
-├─ api/
-├─ core/
-├─ crud/
-├─ database/
-├─ models/
-├─ schemas/
-├─ main.py
-migrations/
-.env
-.gitignore
-alembic.ini
-Pipfile
-Pipfile.lock
-README.md
+.
+├── app
+│   ├── __init__.py
+│   ├── api
+│   ├── core
+│   ├── crud
+│   ├── database
+│   ├── models
+│   ├── schemas
+│   └── main.py
+└── migrations
+│   ├── versions
+│   ├── env.py
+│   └── script.py.mako
+├── .env
+├── .gitignore
+├── alembic.ini
+├── Pipfile
+├── Pipfile.lock
+└── README.md
 ```
 
 ### Launch virtual environment
@@ -55,7 +60,7 @@ README.md
 > pipenv shell
 ```
 
-### Migrate Database
+### Migrate database
 
 ```
 > python3 -m alembic upgrade head
