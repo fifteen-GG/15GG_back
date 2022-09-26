@@ -1,14 +1,15 @@
+from datetime import datetime
 from pydantic import BaseModel
 
 
 class CodeBase(BaseModel):
-    value: int
-    created_at: str
+    value: str
+    created_at: datetime
 
 
 class CodeCreate(CodeBase):
-    value: int
-    created_at: str
+    value: str
+    created_at: datetime
 
 
 class CodeUpdate(CodeBase):
