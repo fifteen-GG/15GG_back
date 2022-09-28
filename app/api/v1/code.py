@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -11,7 +10,7 @@ router = APIRouter()
 
 
 @router.get('', response_model=schemas.Code)
-def code_create(*, db: Session = Depends(get_db)) -> Any:
+def code_create(*, db: Session = Depends(get_db)):
     '''
     Generate code
     '''
@@ -20,7 +19,7 @@ def code_create(*, db: Session = Depends(get_db)) -> Any:
 
 
 @router.get('/validate')
-def code_validate(*, db: Session = Depends(get_db), value: str) -> Any:
+def code_validate(*, db: Session = Depends(get_db), value: str):
     '''
     Validate code
     '''
