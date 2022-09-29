@@ -1,4 +1,4 @@
-from typing import Any, List
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -9,57 +9,31 @@ from app.api.deps import get_db
 router = APIRouter()
 
 
-@router.get("", response_model=schemas.Code)
-def code_create(*, db: Session = Depends(get_db)) -> Any:
-    """
-    Create a single game
-    """
+@router.get('', response_model=schemas.Code)
+def code_create(*, db: Session = Depends(get_db)):
+    '''
+    Generate code
+    '''
     code = crud.code.create_code(db)
     return code
 
-# @router.get("", response_model=List[schemas.ProductResponse])
-# def read_products(db: Session = Depends(get_db), skip: int = 0, limit: int = 100) -> Any:
-#     """
-#     Retrieve all products.
-#     """
-#     products = crud.product.get_multi(db, skip=skip, limit=limit)
-#     return products
 
+@router.get('/validate')
+def code_validate(*, db: Session = Depends(get_db), value: str):
+    '''
+    Validate code
+    '''
+    code = crud.code.validate_code(db, value)
+    if len(code) < 1:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='No code with given value is found')
 
-# @router.post("", response_model=schemas.ProductResponse)
-# def create_product(*, db: Session = Depends(get_db), product_in: schemas.ProductCreate) -> Any:
-#     """
-#     Create new products.
-#     """
-#     product = crud.product.create(db, obj_in=product_in)
-#     return product
+    crud.code.remove(db, model_id=code[0].value)
 
+    if datetime.now() - code[0].created_at > timedelta(minutes=5):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Code has expired')
 
-# @router.put("", response_model=schemas.ProductResponse)
-# def update_product(*, db: Session = Depends(get_db), product_in: schemas.ProductUpdate) -> Any:
-#     """
-#     Update existing products.
-#     """
-#     product = crud.product.get(db, model_id=product_in.id)
-#     if not product:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND,
-#             detail="The product with this ID does not exist in the system.",
-#         )
-#     product = crud.product.update(db, db_obj=product, obj_in=product_in)
-#     return product
-
-
-# @router.delete("", response_model=schemas.Message)
-# def delete_product(*, db: Session = Depends(get_db), id: int) -> Any:
-#     """
-#     Delete existing product.
-#     """
-#     product = crud.product.get(db, model_id=id)
-#     if not product:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND,
-#             detail="The product with this ID does not exist in the system.",
-#         )
-#     crud.product.remove(db, model_id=product.id)
-#     return {"message": f"Product with ID = {id} deleted."}
+    return {'message': 'Code validated'}

@@ -9,14 +9,14 @@ env = dotenv_values('.env')
 
 router = APIRouter()
 
-origins = ["*"]
+origins = ['*']
 
 HEADER = {
     'X-Riot-Token': env['RIOT_TOKEN']
 }
 
-RIOT_API_ROOT_KR = "https://kr.api.riotgames.com/lol"
-RIOT_API_ROOT_ASIA = "https://asia.api.riotgames.com/lol"
+RIOT_API_ROOT_KR = 'https://kr.api.riotgames.com/lol'
+RIOT_API_ROOT_ASIA = 'https://asia.api.riotgames.com/lol'
 
 
 async def get_summoner_basic_info(summoner_name: str):
@@ -116,8 +116,8 @@ async def get_match_list(puuid: str, page: str):
             created_at = datetime_obj
             game_duration = match_info['info']['gameDuration']
             queue_id = match_info['info']['queueId']
-            queue_mode = ""
-            with open('./app/assets/queue.json', mode="r", encoding="UTF-8") as file:
+            queue_mode = ''
+            with open('./app/assets/queue.json', mode='r', encoding='UTF-8') as file:
                 queue_data_list = json.loads(file.read())
                 for queue_data in queue_data_list:
                     if queue_data['queueId'] == queue_id:
@@ -135,16 +135,16 @@ async def get_match_list(puuid: str, page: str):
             items = [user_data['item0'], user_data['item1'], user_data['item2'],
                      user_data['item3'], user_data['item4'], user_data['item5'], user_data['item6']]
             match_info_list.append(
-                {"match_id": match_id,
-                 "win": win, "created_at": created_at,
-                 "queue_mode": queue_mode, "champion_name": champion_name,
-                 "kills": kills, "deaths": deaths, "assists": assists,
-                 "kda": kda, "cs": cs, "cs_per_min": cs_per_min,
-                 "vision_wards_bought_in_game": vision_wards_bought_in_game, "items": items})
+                {'match_id': match_id,
+                 'win': win, 'created_at': created_at,
+                 'queue_mode': queue_mode, 'champion_name': champion_name,
+                 'kills': kills, 'deaths': deaths, 'assists': assists,
+                 'kda': kda, 'cs': cs, 'cs_per_min': cs_per_min,
+                 'vision_wards_bought_in_game': vision_wards_bought_in_game, 'items': items})
         return match_info_list
 
 
-@router.get("/user/{summoner_name}")
+@router.get('/user/{summoner_name}')
 async def get_summoner(summoner_name: str):
     summoner_info = {}
     summoner_basic_info = await get_summoner_basic_info(summoner_name)
@@ -166,7 +166,7 @@ async def get_summoner(summoner_name: str):
     return summoner_info
 
 
-@router.get("/match/{summoner_name}")
+@router.get('/match/{summoner_name}')
 async def get_match_info(summoner_name: str, page: str):
     summoner_basic_info = await get_summoner_basic_info(summoner_name)
     puuid = summoner_basic_info['puuid']
