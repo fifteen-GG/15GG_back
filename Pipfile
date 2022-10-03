@@ -9,6 +9,7 @@ sqlalchemy = "*"
 psycopg2 = "*"
 alembic = "*"
 httpx = "*"
+websockets = "*"
 
 [dev-packages]
 autopep8 = "*"
