@@ -1,5 +1,6 @@
 import asyncio
 import json
+import random
 from fastapi import APIRouter, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
@@ -20,10 +21,13 @@ async def send_result(websocket: WebSocket):
             await asyncio.sleep(1)
             try:
                 if int(data[index]['timestamp']) == timestamp:
-                    await websocket.send_json(data[index])
+                    await websocket.send_json(
+                        {**data[index],
+                            'blue_team_win_rate': round(random.uniform(0, 1), 3)}
+                    )
                     index += 1
             except IndexError:
-                break
+                await websocket.send_text('Game ended')
 
 
 @router.websocket('')
