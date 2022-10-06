@@ -15,7 +15,7 @@ async def echo_message(websocket: WebSocket):
 async def send_result(websocket: WebSocket):
     with open('./app/assets/sample_result.json', encoding='UTF-8') as file:
         data = json.load(file)
-        timestamp, index = 0, 0
+        timestamp, index = 33, 0
         while True:
             timestamp += 1
             await asyncio.sleep(1)
