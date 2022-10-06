@@ -1,3 +1,4 @@
+from ast import And
 import datetime
 from email import message
 import math
@@ -163,8 +164,8 @@ async def get_match_list(puuid: str, page: str):
 
 
 async def get_match_preview_info(match_id: str):
-    win = []
-    lose = []
+    red = []
+    blue = []
     async with httpx.AsyncClient() as client:
         url = RIOT_API_ROOT_ASIA + '/match/v5/matches/' + match_id
         try:
@@ -180,13 +181,20 @@ async def get_match_preview_info(match_id: str):
     for participant_info in participants_info:
         profile = {"summonerName": participant_info['summonerName'],
                    "championName": participant_info['championName'],
+                   "individualPosition": participant_info['individualPosition'],
+                   "teamPosition": participant_info['teamPosition']
                    }
-        if (participant_info['win']):
-            win.append(profile)
-        else:
-            lose.append(profile)
+        if participant_info['teamId'] == 100:
+            blue.append(profile)
+        elif participant_info['teamId'] == 200:
+            red.append(profile)
 
-    return {"gameVersion": game_version, "win": win, "lose": lose, "gameCreation": datetimeobj}
+    return {"gameVersion": game_version, "red": red, "blue": blue, "gameCreation": datetimeobj}
+
+
+def set_dictionary(src, dest, src_keys, dest_keys):
+    for src_key, dest_key in zip(src_keys, dest_keys):
+        dest[dest_key] = src[src_key]
 
 
 @router.get('/user/{summoner_name}')
@@ -212,19 +220,20 @@ async def get_summoner(summoner_name: str):
     except KeyError:
         summoner_info['solo'] = None
 
-    try:
-        match_average_data = await get_match_average_data(puuid)
-        summoner_info['kda_avg'] = match_average_data['kda']
-        summoner_info['kills_avg'] = match_average_data['kills']
-        summoner_info['deaths_avg'] = match_average_data['deaths']
-        summoner_info['assists_avg'] = match_average_data['assists']
-        summoner_info['prefer_position'] = match_average_data['prefer_position']
-    except ValueError:
-        summoner_info['kda_avg'] = None
-        summoner_info['kills_avg'] = None
-        summoner_info['deaths_avg'] = None
-        summoner_info['assists_avg'] = None
-        summoner_info['prefer_position'] = None
+    avg_key_list = ['kda_avg', 'kills_avg', 'deaths_avg',
+                    'assists_avg', 'prefer_position']
+    key_list = ['kda', 'kills', 'deaths',
+                'assists', 'prefer_position']
+    # 자랭 솔랭 둘 다 none이면 무조건 랭겜 안돌린거고 get_match_average_data에서 뽑아낼 거 없음
+    if summoner_info['flex'] == None and summoner_info['solo'] == None:
+        none_list = {'kda': None, 'kills': None,
+                     'deaths': None, 'assists': None, 'prefer_position': None}
+        set_dictionary(none_list, summoner_info, key_list, avg_key_list)
+        return summoner_info
+
+    match_average_data = await get_match_average_data(puuid)
+    set_dictionary(match_average_data, summoner_info, key_list, avg_key_list)
+
     return summoner_info
 
 
