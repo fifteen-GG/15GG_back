@@ -174,6 +174,9 @@ async def get_match_preview_info(match_id: str):
             raise HTTPException(status_code=404, detail='match not found')
         match_info = match_info.json()
         participants_info = match_info['info']['participants']
+        game_version = match_info['info']['gameVersion']
+        game_creation = match_info['info']['gameCreation']
+        datetimeobj = datetime.datetime.fromtimestamp(game_creation/1000)
     for participant_info in participants_info:
         profile = {"summonerName": participant_info['summonerName'],
                    "championName": participant_info['championName'],
@@ -183,7 +186,7 @@ async def get_match_preview_info(match_id: str):
         else:
             lose.append(profile)
 
-    return {"win": win, "lose": lose}
+    return {"gameVersion": game_version, "win": win, "lose": lose, "gameCreation": datetimeobj}
 
 
 @router.get('/user/{summoner_name}')
