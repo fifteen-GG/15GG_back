@@ -15,7 +15,7 @@ router = APIRouter()
 origins = ['*']
 
 HEADER = {
-    'X-Riot-Token': "RGAPI-c35083af-c18f-4ad3-af5e-26f5623db000"
+    'X-Riot-Token': env['RIOT_TOKEN']
 }
 
 RIOT_API_ROOT_KR = 'https://kr.api.riotgames.com/lol'
