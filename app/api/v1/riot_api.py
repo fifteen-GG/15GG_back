@@ -1,8 +1,11 @@
 import datetime
+from email import message
 import math
-import httpx
+from urllib.error import HTTPError
 import json
-from fastapi import APIRouter
+import httpx
+from typing import Union
+from fastapi import FastAPI, HTTPException
 from dotenv import dotenv_values
 
 env = dotenv_values('.env')
@@ -12,7 +15,7 @@ router = APIRouter()
 origins = ['*']
 
 HEADER = {
-    'X-Riot-Token': env['RIOT_TOKEN']
+    'X-Riot-Token': "RGAPI-c35083af-c18f-4ad3-af5e-26f5623db000"
 }
 
 RIOT_API_ROOT_KR = 'https://kr.api.riotgames.com/lol'
@@ -22,7 +25,11 @@ RIOT_API_ROOT_ASIA = 'https://asia.api.riotgames.com/lol'
 async def get_summoner_basic_info(summoner_name: str):
     url = RIOT_API_ROOT_KR + '/summoner/v4/summoners/by-name/' + summoner_name
     async with httpx.AsyncClient() as client:
-        response = await client.get(url, headers=HEADER)
+        try:
+            response = await client.get(url, headers=HEADER)
+            response.raise_for_status()
+        except:
+            raise HTTPException(status_code=404, detail='user not found')
         response = response.json()
     return response
 
@@ -30,7 +37,11 @@ async def get_summoner_basic_info(summoner_name: str):
 async def get_summoner_league_info(summoner_id: str):
     url = RIOT_API_ROOT_KR + '/league/v4/entries/by-summoner/'+summoner_id
     async with httpx.AsyncClient() as client:
-        response = await client.get(url, headers=HEADER)
+        try:
+            response = await client.get(url, headers=HEADER)
+            response.raise_for_status()
+        except:
+            raise HTTPException(status_code=404, detail='user not found')
         response = response.json()
     summoner_league_info = {}
     for league_info in response:
@@ -57,10 +68,14 @@ async def get_match_average_data(puuid: str):
             puuid+'/ids?type=ranked&start=0&count=20'
         match_list = await client.get(url, headers=HEADER)
         match_list = match_list.json()
+        match_list_len = len(match_list)
+
+        if (match_list_len == 0):
+            raise ValueError
+
         for match_id in match_list:
             url = RIOT_API_ROOT_ASIA + '/match/v5/matches/' + match_id
             match_info = await client.get(url, headers=HEADER)
-            # 429 에러 다루기
             match_info = match_info.json()
             participants = match_info['metadata']['participants']
             user_index = participants.index(puuid)
@@ -75,7 +90,8 @@ async def get_match_average_data(puuid: str):
             else:
                 team_position[user_data['teamPosition']] = 1
         prefer_position = max(team_position, key=team_position.get)
-        position_rate = math.floor(team_position[prefer_position] / 20 * 100)
+        position_rate = math.floor(
+            team_position[prefer_position] / match_list_len * 100)
         if prefer_position == 'MIDDLE':
             prefer_position = 'MID'
         elif prefer_position == 'JUNGLE':
@@ -84,10 +100,10 @@ async def get_match_average_data(puuid: str):
             prefer_position = 'SUP'
         elif prefer_position == 'BOTTOM':
             prefer_position = 'ADC'
-        match_average_data = {'kda': round(kda / 20, 2),
-                              'kills': round(kills / 20, 1),
-                              'deaths': round(deaths / 20, 1),
-                              'assists': round(assists / 20, 1),
+        match_average_data = {'kda': round(kda / match_list_len, 2),
+                              'kills': round(kills / match_list_len, 1),
+                              'deaths': round(deaths / match_list_len, 1),
+                              'assists': round(assists / match_list_len, 1),
                               'prefer_position': {prefer_position: position_rate}
                               }
         return match_average_data
@@ -127,7 +143,10 @@ async def get_match_list(puuid: str, page: str):
             kills = user_data['kills']
             deaths = user_data['deaths']
             assists = user_data['assists']
-            kda = round(user_data['challenges']['kda'], 2)
+            try:
+                kda = round(user_data['challenges']['kda'], 2)
+            except KeyError:
+                kda = round((kills+assists) / deaths)
             cs = user_data['totalMinionsKilled'] + \
                 user_data['neutralMinionsKilled']
             cs_per_min = round(cs / (game_duration / 60), 1)
@@ -144,10 +163,35 @@ async def get_match_list(puuid: str, page: str):
         return match_info_list
 
 
+async def get_match_preview_info(match_id: str):
+    win = []
+    lose = []
+    async with httpx.AsyncClient() as client:
+        url = RIOT_API_ROOT_ASIA + '/match/v5/matches/' + match_id
+        try:
+            match_info = await client.get(url, headers=HEADER)
+            match_info.raise_for_status()
+        except:
+            raise HTTPException(status_code=404, detail='match not found')
+        match_info = match_info.json()
+        participants_info = match_info['info']['participants']
+    for participant_info in participants_info:
+        profile = {"summonerName": participant_info['summonerName'],
+                   "championName": participant_info['championName'],
+                   }
+        if (participant_info['win']):
+            win.append(profile)
+        else:
+            lose.append(profile)
+
+    return {"win": win, "lose": lose}
+
+
 @router.get('/user/{summoner_name}')
 async def get_summoner(summoner_name: str):
     summoner_info = {}
     summoner_basic_info = await get_summoner_basic_info(summoner_name)
+
     summoner_id = summoner_basic_info['id']  # SUMMONER에서 사용
     puuid = summoner_basic_info['puuid']  # MATCH에서 사용
     summoner_info['name'] = summoner_basic_info['name']
@@ -155,14 +199,30 @@ async def get_summoner(summoner_name: str):
     summoner_info['profileIconId'] = summoner_basic_info['profileIconId']
 
     summoner_league_info = await get_summoner_league_info(summoner_id)
-    summoner_info['flex'] = summoner_league_info['RANKED_FLEX_SR']
-    summoner_info['solo'] = summoner_league_info['RANKED_SOLO_5x5']
-    match_average_data = await get_match_average_data(puuid)
-    summoner_info['kda_avg'] = match_average_data['kda']
-    summoner_info['kills_avg'] = match_average_data['kills']
-    summoner_info['deaths_avg'] = match_average_data['deaths']
-    summoner_info['assists_avg'] = match_average_data['assists']
-    summoner_info['prefer_position'] = match_average_data['prefer_position']
+
+    try:
+        summoner_info['flex'] = summoner_league_info['RANKED_FLEX_SR']
+    except KeyError:
+        summoner_info['flex'] = None
+
+    try:
+        summoner_info['solo'] = summoner_league_info['RANKED_SOLO_5x5']
+    except KeyError:
+        summoner_info['solo'] = None
+
+    try:
+        match_average_data = await get_match_average_data(puuid)
+        summoner_info['kda_avg'] = match_average_data['kda']
+        summoner_info['kills_avg'] = match_average_data['kills']
+        summoner_info['deaths_avg'] = match_average_data['deaths']
+        summoner_info['assists_avg'] = match_average_data['assists']
+        summoner_info['prefer_position'] = match_average_data['prefer_position']
+    except ValueError:
+        summoner_info['kda_avg'] = None
+        summoner_info['kills_avg'] = None
+        summoner_info['deaths_avg'] = None
+        summoner_info['assists_avg'] = None
+        summoner_info['prefer_position'] = None
     return summoner_info
 
 
@@ -172,3 +232,9 @@ async def get_match_info(summoner_name: str, page: str):
     puuid = summoner_basic_info['puuid']
     match_info = await get_match_list(puuid, page)
     return match_info
+
+
+@router.get('/match/preview/{match_id}')
+async def get_match_preview(match_id: str):
+    match_preview_info = await get_match_preview_info(match_id)
+    return match_preview_info
