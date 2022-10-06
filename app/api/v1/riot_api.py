@@ -5,11 +5,10 @@ from urllib.error import HTTPError
 import json
 import httpx
 from typing import Union
-from fastapi import FastAPI, HTTPException
+from fastapi import HTTPException, APIRouter
 from dotenv import dotenv_values
 
 env = dotenv_values('.env')
-
 router = APIRouter()
 
 origins = ['*']
