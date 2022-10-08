@@ -113,9 +113,11 @@ async def get_match_list(puuid: str, page: str):
     async with httpx.AsyncClient() as client:
         match_info_list = []
         url = RIOT_API_ROOT_ASIA + '/match/v5/matches/by-puuid/' + \
-            puuid+'/ids?start=' + str(int(page) * 5) + '&count=5'
+            puuid+'/ids?start=' + str((int(page) - 1) * 5) + '&count=5'
         match_list = await client.get(url, headers=HEADER)
         match_list = match_list.json()
+        if (len(match_list) == 0):
+            raise HTTPException(status_code=404, detail='no matches')
         for match_id in match_list:
             url = RIOT_API_ROOT_ASIA + '/match/v5/matches/' + match_id
             match_info = await client.get(url, headers=HEADER)
@@ -133,11 +135,24 @@ async def get_match_list(puuid: str, page: str):
             game_duration = match_info['info']['gameDuration']
             queue_id = match_info['info']['queueId']
             queue_mode = ''
-            with open('./app/assets/queue.json', mode='r', encoding='UTF-8') as file:
-                queue_data_list = json.loads(file.read())
+            with open('./app/assets/queue.json', mode='r', encoding='UTF-8') as queueFile:
+                queue_data_list = json.loads(queueFile.read())
                 for queue_data in queue_data_list:
                     if queue_data['queueId'] == queue_id:
                         queue_mode = queue_data['description']
+                        break
+            summoner1Id = user_data['summoner1Id']
+            summoner2Id = user_data['summoner2Id']
+            spells = {'spell1': '', 'spell2': ''}
+            with open('./app/assets/spell.json', mode='r', encoding='UTF-8') as spellFile:
+                spell_data_list = json.loads(spellFile.read())['data']
+                for key, value in spell_data_list.items():
+                    print(type(value['key']))
+                    if value['key'] == str(summoner1Id):
+                        spells['spell1'] = value['id']
+                    elif value['key'] == str(summoner2Id):
+                        spells['spell2'] = value['id']
+                    if spells['spell1'] != '' and spells['spell2'] != '':
                         break
             champion_name = user_data['championName']
             kills = user_data['kills']
@@ -153,13 +168,17 @@ async def get_match_list(puuid: str, page: str):
             vision_wards_bought_in_game = user_data['visionWardsBoughtInGame']
             items = [user_data['item0'], user_data['item1'], user_data['item2'],
                      user_data['item3'], user_data['item4'], user_data['item5'], user_data['item6']]
+            perks = {"perk": user_data['perks']
+                     ['styles'][0]['selections'][0]['perk'],
+                     "perkStyle": user_data['perks']
+                     ['styles'][1]['style']}
             match_info_list.append(
                 {'match_id': match_id,
                  'win': win, 'created_at': created_at,
                  'queue_mode': queue_mode, 'champion_name': champion_name,
                  'kills': kills, 'deaths': deaths, 'assists': assists,
                  'kda': kda, 'cs': cs, 'cs_per_min': cs_per_min,
-                 'vision_wards_bought_in_game': vision_wards_bought_in_game, 'items': items})
+                 'vision_wards_bought_in_game': vision_wards_bought_in_game, 'items': items, 'spells': spells, 'perks': perks})
         return match_info_list
 
 
