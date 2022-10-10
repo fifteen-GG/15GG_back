@@ -1,6 +1,6 @@
 from ast import And
+from audioop import reverse
 import datetime
-from email import message
 import math
 from urllib.error import HTTPError
 import json
@@ -8,6 +8,7 @@ import httpx
 from typing import Union
 from fastapi import HTTPException, APIRouter
 from dotenv import dotenv_values
+import operator
 
 env = dotenv_values('.env')
 router = APIRouter()
@@ -59,7 +60,6 @@ async def get_summoner_league_info(summoner_id: str):
 
 async def get_match_average_data(puuid: str):
     async with httpx.AsyncClient() as client:
-        kda = 0
         kills = 0
         deaths = 0
         assists = 0
@@ -69,7 +69,9 @@ async def get_match_average_data(puuid: str):
         match_list = await client.get(url, headers=HEADER)
         match_list = match_list.json()
         match_list_len = len(match_list)
+        champions = []
 
+        # 랭겜 이력이 없으면 ValueError
         if (match_list_len == 0):
             raise ValueError
 
@@ -80,15 +82,39 @@ async def get_match_average_data(puuid: str):
             participants = match_info['metadata']['participants']
             user_index = participants.index(puuid)
             user_data = match_info['info']['participants'][user_index]
-            kda += user_data['challenges']['kda']
             kills += user_data['kills']
             deaths += user_data['deaths']
             assists += user_data['assists']
+            championName = user_data['championName']
+            win = user_data['win']
+            flag = False
+
+            for champion in champions:
+                if champion['championName'] == championName:
+                    flag = True
+                    champion['counts'] += 1
+                    champion['kills'] += user_data['kills']
+                    champion['deaths'] += user_data['deaths']
+                    champion['assists'] += user_data['assists']
+                    if win:
+                        champion['wins'] += 1
+            if flag == False:
+                champion_dict = {'championName': championName, 'counts': 1,
+                                 'kills': user_data['kills'], 'deaths': user_data['deaths'], 'assists': user_data['assists']}
+                if win:
+                    champion_dict['wins'] = 1
+                else:
+                    champion_dict['wins'] = 0
+                champions.append(champion_dict)
 
             if user_data['teamPosition'] in team_position:
                 team_position[user_data['teamPosition']] += 1
             else:
                 team_position[user_data['teamPosition']] = 1
+
+        sorted_champions = sorted(
+            champions, key=lambda champion: (champion['counts'], champion['wins']), reverse=True)
+
         prefer_position = max(team_position, key=team_position.get)
         position_rate = math.floor(
             team_position[prefer_position] / match_list_len * 100)
@@ -100,11 +126,18 @@ async def get_match_average_data(puuid: str):
             prefer_position = 'SUP'
         elif prefer_position == 'BOTTOM':
             prefer_position = 'ADC'
-        match_average_data = {'kda': round(kda / match_list_len, 2),
+
+        try:
+            kda = round((kills+assists) / deaths, 2)
+        except ZeroDivisionError:
+            kda = 'Perfect'
+
+        match_average_data = {'kda': kda,
                               'kills': round(kills / match_list_len, 1),
                               'deaths': round(deaths / match_list_len, 1),
                               'assists': round(assists / match_list_len, 1),
-                              'prefer_position': {prefer_position: position_rate}
+                              'prefer_position': {prefer_position: position_rate},
+                              'champions': sorted_champions
                               }
         return match_average_data
 
@@ -147,7 +180,6 @@ async def get_match_list(puuid: str, page: str):
             with open('./app/assets/spell.json', mode='r', encoding='UTF-8') as spellFile:
                 spell_data_list = json.loads(spellFile.read())['data']
                 for key, value in spell_data_list.items():
-                    print(type(value['key']))
                     if value['key'] == str(summoner1Id):
                         spells['spell1'] = value['id']
                     elif value['key'] == str(summoner2Id):
@@ -158,10 +190,11 @@ async def get_match_list(puuid: str, page: str):
             kills = user_data['kills']
             deaths = user_data['deaths']
             assists = user_data['assists']
+
             try:
-                kda = round(user_data['challenges']['kda'], 2)
-            except KeyError:
-                kda = round((kills+assists) / deaths)
+                kda = round((kills+assists) / deaths, 2)
+            except ZeroDivisionError:
+                kda = 'Perfect'
             cs = user_data['totalMinionsKilled'] + \
                 user_data['neutralMinionsKilled']
             cs_per_min = round(cs / (game_duration / 60), 1)
@@ -240,13 +273,13 @@ async def get_summoner(summoner_name: str):
         summoner_info['solo'] = None
 
     avg_key_list = ['kda_avg', 'kills_avg', 'deaths_avg',
-                    'assists_avg', 'prefer_position']
+                    'assists_avg', 'prefer_position', 'champions']
     key_list = ['kda', 'kills', 'deaths',
-                'assists', 'prefer_position']
+                'assists', 'prefer_position', 'champions']
     # 자랭 솔랭 둘 다 none이면 무조건 랭겜 안돌린거고 get_match_average_data에서 뽑아낼 거 없음
     if summoner_info['flex'] == None and summoner_info['solo'] == None:
         none_list = {'kda': None, 'kills': None,
-                     'deaths': None, 'assists': None, 'prefer_position': None}
+                     'deaths': None, 'assists': None, 'prefer_position': None, 'champions': None}
         set_dictionary(none_list, summoner_info, key_list, avg_key_list)
         return summoner_info
 
