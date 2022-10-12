@@ -1,3 +1,4 @@
+import os
 from ast import And
 from audioop import reverse
 import datetime
@@ -7,16 +8,15 @@ import json
 import httpx
 from typing import Union
 from fastapi import HTTPException, APIRouter
-from dotenv import dotenv_values
 import operator
 
-env = dotenv_values('.env')
+
 router = APIRouter()
 
 origins = ['*']
 
 HEADER = {
-    'X-Riot-Token': env['RIOT_TOKEN']
+    'X-Riot-Token': os.environ.get('RIOT_TOKEN')
 }
 
 RIOT_API_ROOT_KR = 'https://kr.api.riotgames.com/lol'

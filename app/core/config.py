@@ -1,4 +1,5 @@
 import secrets
+import os
 
 from pydantic import BaseSettings
 from dotenv import dotenv_values
@@ -7,8 +8,8 @@ env = dotenv_values('.env')
 
 
 DB_URI = 'postgresql://' + \
-    f'{env["DB_USERNAME"]}:{env["DB_PASSWORD"]}' + \
-    f'@{env["DB_HOST"]}:{env["DB_PORT"]}/{env["DB_NAME"]}'
+    f'{os.environ.get("DB_USERNAME")}:{os.environ.get("DB_PASSWORD")}' + \
+    f'@{os.environ.get("DB_HOST")}:{os.environ.get("DB_PORT")}/{os.environ.get("DB_NAME")}'
 
 
 class Settings(BaseSettings):
