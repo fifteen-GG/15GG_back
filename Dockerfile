@@ -14,6 +14,6 @@ ENV DB_HOST=${DB_HOST}
 ENV DB_PORT=${DB_PORT}
 ENV DB_NAME=${DB_NAME}
 ENV RIOT_TOKEN=${RIOT_TOKEN}
-EXPOSE 80
+EXPOSE 8000
 COPY . /app
-CMD python -m alembic upgrade head && gunicorn -w 4 -b 0.0.0.0:80 -k uvicorn.workers.UvicornWorker app.main:app
+CMD python -m alembic upgrade head && gunicorn -w 4 -b 0.0.0.0:8000 -k uvicorn.workers.UvicornWorker app.main:app

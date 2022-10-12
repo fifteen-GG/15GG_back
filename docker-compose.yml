@@ -25,7 +25,16 @@ services:
         - RIOT_TOKEN=${RIOT_TOKEN}
     restart: always
     ports:
+      - 8000:8000
+  
+  nginx:
+    image: nginx:stable-alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
       - 80:80
+    depends_on:
+      - app
 
 volumes:
   db_data:
