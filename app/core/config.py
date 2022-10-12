@@ -4,12 +4,16 @@ import os
 from pydantic import BaseSettings
 from dotenv import dotenv_values
 
-env = dotenv_values('.env')
+if dotenv_values('.env'):
+    env = dotenv_values('.env')
+    env['DB_HOST'] = '127.0.0.1'
+else:
+    env = os.environ
 
 
 DB_URI = 'postgresql://' + \
-    f'{os.environ.get("DB_USERNAME")}:{os.environ.get("DB_PASSWORD")}' + \
-    f'@{os.environ.get("DB_HOST")}:{os.environ.get("DB_PORT")}/{os.environ.get("DB_NAME")}'
+    f'{env.get("DB_USERNAME")}:{env.get("DB_PASSWORD")}' + \
+    f'@{env.get("DB_HOST")}:{env.get("DB_PORT")}/{env.get("DB_NAME")}'
 
 
 class Settings(BaseSettings):
