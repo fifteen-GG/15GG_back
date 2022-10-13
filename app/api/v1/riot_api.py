@@ -263,6 +263,7 @@ def set_dictionary(dest, src, dest_keys, src_keys):
 
 @router.get('/user/{summoner_name}')
 async def get_summoner(summoner_name: str):
+    start = time.time()
     summoner_info = {}
     summoner_basic_info = await get_summoner_basic_info(summoner_name)
 
@@ -297,6 +298,8 @@ async def get_summoner(summoner_name: str):
 
     match_average_data = await get_match_average_data(puuid)
     set_dictionary(summoner_info, match_average_data, avg_key_list, key_list)
+    end = time.time()
+    print(f"{end - start:.5f} sec")
     return summoner_info
 
 
