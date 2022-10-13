@@ -173,6 +173,10 @@ async def get_match_list(puuid: str, page: str):
             win = user_data['win']
             created_at = datetime_obj
             game_duration = match_info['info']['gameDuration']
+            try:
+                match_info['info']['gameEndTimestamp']
+            except KeyError:
+                game_duration = game_duration / 1000
             queue_id = match_info['info']['queueId']
             queue_mode = ''
             with open('./app/assets/queue.json', mode='r', encoding='UTF-8') as queueFile:
@@ -214,6 +218,7 @@ async def get_match_list(puuid: str, page: str):
                      ['styles'][1]['style']}
             match_info_list.append(
                 {'match_id': match_id,
+                 'game_duration': game_duration,
                  'win': win, 'created_at': created_at,
                  'queue_mode': queue_mode, 'champion_name': champion_name,
                  'kills': kills, 'deaths': deaths, 'assists': assists,
@@ -258,7 +263,6 @@ def set_dictionary(dest, src, dest_keys, src_keys):
 
 @router.get('/user/{summoner_name}')
 async def get_summoner(summoner_name: str):
-    start = time.time()
     summoner_info = {}
     summoner_basic_info = await get_summoner_basic_info(summoner_name)
 
@@ -293,8 +297,6 @@ async def get_summoner(summoner_name: str):
 
     match_average_data = await get_match_average_data(puuid)
     set_dictionary(summoner_info, match_average_data, avg_key_list, key_list)
-    end = time.time()
-    print(f"{end - start:.5f} sec")
     return summoner_info
 
 
