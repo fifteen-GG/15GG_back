@@ -73,7 +73,7 @@ async def get_match_average_data(puuid: str):
     assists = 0
     team_position = {}
     url = RIOT_API_ROOT_ASIA + '/match/v5/matches/by-puuid/' + \
-        puuid+'/ids?type=ranked&start=0&count=18'
+        puuid+'/ids?type=ranked&start=0&count=10'
     match_list = await client.get(url, headers=HEADER)
     match_list = match_list.json()
     match_list_len = len(match_list)
