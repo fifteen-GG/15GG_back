@@ -73,7 +73,7 @@ async def get_match_average_data(puuid: str):
     assists = 0
     team_position = {}
     url = RIOT_API_ROOT_ASIA + '/match/v5/matches/by-puuid/' + \
-        puuid+'/ids?type=ranked&start=0&count=18'
+        puuid+'/ids?type=ranked&start=0&count=10'
     match_list = await client.get(url, headers=HEADER)
     match_list = match_list.json()
     match_list_len = len(match_list)
@@ -263,6 +263,7 @@ def set_dictionary(dest, src, dest_keys, src_keys):
 
 @router.get('/user/{summoner_name}')
 async def get_summoner(summoner_name: str):
+    start = time.time()
     summoner_info = {}
     summoner_basic_info = await get_summoner_basic_info(summoner_name)
 
@@ -297,6 +298,8 @@ async def get_summoner(summoner_name: str):
 
     match_average_data = await get_match_average_data(puuid)
     set_dictionary(summoner_info, match_average_data, avg_key_list, key_list)
+    end = time.time()
+    print(f"{end - start:.5f} sec")
     return summoner_info
 
 
