@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class TrainGameBase(BaseModel):
-    matchId: str
+    match_id: str
     status: bool
 
 
