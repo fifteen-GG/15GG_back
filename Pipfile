@@ -10,7 +10,6 @@ psycopg2 = "*"
 alembic = "*"
 httpx = "*"
 websockets = "*"
-grequests = "*"
 pandas = "*"
 bs4 = "*"
 
