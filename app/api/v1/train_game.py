@@ -55,11 +55,10 @@ async def get_train_game():
 
 
 @ router.get('', response_model=List[schemas.TrainGame])
-def train_game_list(db: Session = Depends(get_db), skip: int = 0, limit: int = 100):
+def train_game_get(db: Session = Depends(get_db)):
+    train_game_list = crud.train_game.get_train_game(db)
 
-    parse_list = crud.TrainGame.get_multi(db, skip=skip, limit=limit)
-    # status가 false인 match만 뽑아서 return
-    return parse_list
+    return train_game_list
 
 
 @ router.post('')

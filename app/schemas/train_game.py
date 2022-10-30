@@ -1,9 +1,10 @@
+from typing import Optional
 from pydantic import BaseModel
 
 
 class TrainGameBase(BaseModel):
     match_id: str
-    status: bool
+    is_parsed: bool
 
 
 class TrainGameCreate(TrainGameBase):
@@ -15,7 +16,7 @@ class TrainGameUpdate(TrainGameBase):
 
 
 class TrainGame(TrainGameBase):
-    id: int
+    id: Optional[int]
 
     class Config:
         orm_mode = True
