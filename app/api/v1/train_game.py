@@ -1,7 +1,7 @@
 import asyncio
 from typing import List
 
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, Depends, UploadFile
 from sqlalchemy.orm import Session
 
 from app import schemas, crud
@@ -15,9 +15,9 @@ from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 
-from fastapi_utils.tasks import repeat_every
-
 from app.database.session import SessionLocal
+
+import os
 
 router = APIRouter()
 
@@ -84,7 +84,7 @@ def train_game_get(db: Session = Depends(get_db)):
 
 
 @ router.post('/uploadJson')
-async def uploadJson(db: Session = Depends(get_db)):
+async def uploadJson(result_file: UploadFile, meta_file: UploadFile, db: Session = Depends(get_db)):
     try:
         import argparse
         flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
@@ -104,17 +104,21 @@ async def uploadJson(db: Session = Depends(get_db)):
 
     DRIVE = build('drive', 'v3', http=creds.authorize(Http()))
 
-    FILES = (
-        ('KR-6159295677.json'),
-    )
+    with open(result_file.filename, 'wb') as f:
+        content = await result_file.read()
+        f.write(content)
+        f.close()
 
+    with open(meta_file.filename, 'wb') as f:
+        content = await meta_file.read()
+        f.write(content)
+        f.close()
+
+    FILES = [result_file.filename, meta_file.filename]
     for file_title in FILES:
-        file_name = file_title
-        metadata = {'name': file_name,
-                    'mimeType': None
-                    }
-
-        res = DRIVE.files().create(body=metadata, media_body=file_name).execute()
-        if res:
-            print('Uploaded "%s" (%s)' % (file_name, res['mimeType']))
-            crud.train_game.update_is_parsed(db, file_name)
+        metadata = {'name': file_title, 'mimeType': None}
+        res = DRIVE.files().create(body=metadata, media_body=file_title).execute()
+        if res and file_title.split('_')[0] == 'result':
+            print('Uploaded "%s" (%s)' % (file_title, res['mimeType']))
+            crud.train_game.update_is_parsed(db, file_title)
+        os.remove(f'./{file_title}')
