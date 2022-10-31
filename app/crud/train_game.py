@@ -16,19 +16,22 @@ class CRUDTrainGame(CRUDBase[TrainGame, TrainGameCreate, TrainGameUpdate]):
                 query = f"('{match_id}', false)"
             else:
                 query += f",('{match_id}', false)"
-
         db.execute(
             f"INSERT INTO train_game (match_id, is_parsed) VALUES {query} ON CONFLICT (match_id) DO NOTHING")
         db.commit()
         return
 
     def get_train_game(self, db: Session):
-        # res = db.execute(
-        #     'SELECT * from train_game WHERE is_parsed=false')
-        # db.commit()
         train_game_list = db.query(self.model).filter(
             self.model.is_parsed == False).all()
         return train_game_list
+
+    def update_is_parsed(self, db: Session, file_name):
+        match_id = file_name.split('.')[0]
+
+        db.query(self.model).filter(self.model.match_id ==
+                                    match_id).update({self.model.is_parsed: True})
+        db.commit()
 
 
 train_game = CRUDTrainGame(TrainGame)
