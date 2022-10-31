@@ -1,23 +1,30 @@
 import asyncio
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, FastAPI
 from sqlalchemy.orm import Session
 
 from app import schemas, crud
 from app.api.deps import get_db
 
 import urllib
-import pandas as pd
 from bs4 import BeautifulSoup
 import httpx
+
+from googleapiclient.discovery import build
+from httplib2 import Http
+from oauth2client import file, client, tools
+
+from fastapi_utils.tasks import repeat_every
+
+from app.database.session import SessionLocal
+
 router = APIRouter()
 
 
 async def get_train_game():
     user_list = []
     async with httpx.AsyncClient() as client:
-        url = 'https://fow.kr/neo_ranking.php'
         requests_list = [
             client.post('https://fow.kr/neo_ranking.php', data={'start': page})
             for page in range(1, 5001, 50)
@@ -28,7 +35,6 @@ async def get_train_game():
                 user_list.append(html.text)
 
     async with httpx.AsyncClient() as client:
-        url = 'https://fow.kr/find/'
         requests_list = [
             client.get('https://fow.kr/find/' + urllib.parse.quote(name))
             for name in user_list
@@ -54,6 +60,22 @@ async def get_train_game():
     return game_list
 
 
+async def train_game_post(db: Session = Depends(get_db)):
+    db: Session = SessionLocal()
+    train_game_list = await get_train_game()
+    # crud.train_game.create_train_game(db, train_game_list)
+    query = ""
+    for match_id in train_game_list:
+        if query == "":
+            query = f"('{match_id}', false)"
+        else:
+            query += f",('{match_id}', false)"
+    db.execute(
+        f"INSERT INTO train_game (match_id, is_parsed) VALUES {query} ON CONFLICT (match_id) DO NOTHING")
+    db.commit()
+    return
+
+
 @ router.get('', response_model=List[schemas.TrainGame])
 def train_game_get(db: Session = Depends(get_db)):
     train_game_list = crud.train_game.get_train_game(db)
@@ -61,9 +83,38 @@ def train_game_get(db: Session = Depends(get_db)):
     return train_game_list
 
 
-@ router.post('')
-async def train_game_post(db: Session = Depends(get_db)):
-    train_game_list = await get_train_game()
-    crud.train_game.create_train_game(db, train_game_list)
+@ router.post('/uploadJson')
+async def uploadJson(db: Session = Depends(get_db)):
+    try:
+        import argparse
+        flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
+    except ImportError:
+        flags = None
 
-    return
+    SCOPES = 'https://www.googleapis.com/auth/drive.file'
+    store = file.Storage('storage.json')
+    creds = store.get()
+
+    if not creds or creds.invalid:
+        print("make new storage data file ")
+        flow = client.flow_from_clientsecrets(
+            'client_secret_drive.json', SCOPES)
+        creds = tools.run_flow(flow, store, flags) \
+            if flags else tools.run(flow, store)
+
+    DRIVE = build('drive', 'v3', http=creds.authorize(Http()))
+
+    FILES = (
+        ('KR-6159295677.json'),
+    )
+
+    for file_title in FILES:
+        file_name = file_title
+        metadata = {'name': file_name,
+                    'mimeType': None
+                    }
+
+        res = DRIVE.files().create(body=metadata, media_body=file_name).execute()
+        if res:
+            print('Uploaded "%s" (%s)' % (file_name, res['mimeType']))
+            crud.train_game.update_is_parsed(db, file_name)

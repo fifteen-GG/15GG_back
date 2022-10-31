@@ -12,6 +12,13 @@ httpx = "*"
 websockets = "*"
 pandas = "*"
 bs4 = "*"
+pydrive = "*"
+google-api-python-client = "*"
+httplib2 = "*"
+oauth2client = "*"
+schedule = "*"
+aioschedule = "*"
+fastapi-utils = "*"
 
 [dev-packages]
 autopep8 = "*"
