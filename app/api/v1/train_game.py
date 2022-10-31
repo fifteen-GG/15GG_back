@@ -83,8 +83,8 @@ def train_game_get(db: Session = Depends(get_db)):
     return train_game_list
 
 
-@ router.post('/uploadJson')
-async def uploadJson(result_file: UploadFile, meta_file: UploadFile, db: Session = Depends(get_db)):
+@ router.post('/upload_json')
+async def upload_json(result_file: UploadFile, meta_file: UploadFile, db: Session = Depends(get_db)):
     try:
         import argparse
         flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
