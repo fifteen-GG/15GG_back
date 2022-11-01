@@ -10,3 +10,4 @@ test.db
 .env
 
 client_secret_drive.json
+storage.json
