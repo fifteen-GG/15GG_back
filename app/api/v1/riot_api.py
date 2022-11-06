@@ -372,24 +372,26 @@ async def get_match_detail(match_id: str):
                      "perkStyle": participant['perks']['styles'][1]['style']}
             items = [participant['item0'], participant['item1'], participant['item2'],
                      participant['item3'], participant['item4'], participant['item5'], participant['item6']]
+            gold_earned = participant['goldEarned']
             kills = participant['kills']
             deaths = participant['deaths']
             assists = participant['assists']
             total_damage_dealt_to_champions = participant['totalDamageDealtToChampions']
             total_damage_taken = participant['totalDamageTaken']
+            win = participant['win']
             if team_id == 100:
                 for blue_user in blue_team:
                     if blue_user['summoner_name'] == summoner_name:
                         rank = blue_user['rank']
-                        return_blue_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'spells': spells, 'perks': perks, 'items': items, 'kills': kills,
-                                                 'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken})
+                        return_blue_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'spells': spells, 'perks': perks, 'items': items, 'goldEarned': gold_earned, 'kills': kills,
+                                                 'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken, 'win': win})
                         break
             else:
                 for red_user in red_team:
                     if red_user['summoner_name'] == summoner_name:
                         rank = red_user['rank']
-                        return_red_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'spells': spells, 'perks': perks, 'items': items, 'kills': kills,
-                                                'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken})
+                        return_red_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'spells': spells, 'perks': perks, 'items': items, 'goldEarned': gold_earned, 'kills': kills,
+                                                'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken, 'win': win})
                         break
 
     return {'red': return_red_team, 'blue': return_blue_team}
