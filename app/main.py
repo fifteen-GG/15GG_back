@@ -26,7 +26,7 @@ if __name__ == '__main__':
     uvicorn.run('app.main:app', host='0.0.0.0', port=8000, reload=True)
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60 * 1)
-async def periodic():
-    await train_game_post()
+# @app.on_event("startup")
+# @repeat_every(seconds=60 * 1)
+# async def periodic():
+#     await train_game_post()
