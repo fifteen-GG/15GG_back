@@ -356,6 +356,7 @@ async def get_match_detail(match_id: str):
             summoner_name = participant['summonerName']
             team_id = participant['teamId']
             champion_name = participant['championName']
+            champ_level = participant['champLevel']
             summoner1Id = participant['summoner1Id']
             summoner2Id = participant['summoner2Id']
             spells = {'spell1': '', 'spell2': ''}
@@ -383,14 +384,14 @@ async def get_match_detail(match_id: str):
                 for blue_user in blue_team:
                     if blue_user['summoner_name'] == summoner_name:
                         rank = blue_user['rank']
-                        return_blue_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'spells': spells, 'perks': perks, 'items': items, 'goldEarned': gold_earned, 'kills': kills,
+                        return_blue_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'champLevel': champ_level, 'spells': spells, 'perks': perks, 'items': items, 'goldEarned': gold_earned, 'kills': kills,
                                                  'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken, 'win': win})
                         break
             else:
                 for red_user in red_team:
                     if red_user['summoner_name'] == summoner_name:
                         rank = red_user['rank']
-                        return_red_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'spells': spells, 'perks': perks, 'items': items, 'goldEarned': gold_earned, 'kills': kills,
+                        return_red_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'champLevel': champ_level, 'spells': spells, 'perks': perks, 'items': items, 'goldEarned': gold_earned, 'kills': kills,
                                                 'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken, 'win': win})
                         break
 
