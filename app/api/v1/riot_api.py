@@ -2,10 +2,14 @@ import asyncio
 import datetime
 import math
 import json
+from tokenize import Number
 import httpx
 from fastapi import HTTPException, APIRouter
 from dotenv import dotenv_values
 import time
+from bs4 import BeautifulSoup
+
+
 env = dotenv_values('.env')
 router = APIRouter()
 
@@ -263,7 +267,6 @@ def set_dictionary(dest, src, dest_keys, src_keys):
 
 @router.get('/user/{summoner_name}')
 async def get_summoner(summoner_name: str):
-    start = time.time()
     summoner_info = {}
     summoner_basic_info = await get_summoner_basic_info(summoner_name)
 
@@ -298,12 +301,10 @@ async def get_summoner(summoner_name: str):
 
     match_average_data = await get_match_average_data(puuid)
     set_dictionary(summoner_info, match_average_data, avg_key_list, key_list)
-    end = time.time()
-    print(f"{end - start:.5f} sec")
     return summoner_info
 
 
-@router.get('/match/{summoner_name}')
+@router.get('/user/match_list/{summoner_name}')
 async def get_match_info(summoner_name: str, page: str):
     start = time.time()
     summoner_basic_info = await get_summoner_basic_info(summoner_name)
@@ -317,3 +318,78 @@ async def get_match_info(summoner_name: str, page: str):
 async def get_match_preview(match_id: str):
     match_preview_info = await get_match_preview_info(match_id)
     return match_preview_info
+
+
+@router.get('/match/detail/{match_id}')
+async def get_match_detail(match_id: str):
+    red_team = []
+    blue_team = []
+    return_red_team = []
+    return_blue_team = []
+    async with httpx.AsyncClient() as client:
+        url = 'http://fow.kr/api_new_ajax.php'
+        match_id_num = int(match_id.split('_')[1])
+        try:
+            response = await client.post(url, data={'action': 'battle_detail', 'gid': match_id_num})
+        except:
+            raise HTTPException(status_code=404, detail='Match is not found')
+        user_rows = BeautifulSoup(
+            response.text, features='html.parser').findAll('tr')
+
+        for user_row in user_rows:
+            try:
+                summoner_name = user_row.find(
+                    'td', class_='detail_list_name').text
+                rank = user_row.find('td').text
+            except:
+                continue
+            if user_row.find('td')['class'][0] == 't_purple':
+                red_team.append(
+                    {'summoner_name': summoner_name, 'rank': rank})
+            else:
+                blue_team.append(
+                    {'summoner_name': summoner_name, 'rank': rank})
+    async with httpx.AsyncClient() as client:
+        match_info = await get_match_data(match_id, client)
+        participants = match_info['info']['participants']
+        for participant in participants:
+            summoner_name = participant['summonerName']
+            team_id = participant['teamId']
+            champion_name = participant['championName']
+            summoner1Id = participant['summoner1Id']
+            summoner2Id = participant['summoner2Id']
+            spells = {'spell1': '', 'spell2': ''}
+            with open('./app/assets/spell.json', mode='r', encoding='UTF-8') as spellFile:
+                spell_data_list = json.loads(spellFile.read())['data']
+                for key, value in spell_data_list.items():
+                    if value['key'] == str(summoner1Id):
+                        spells['spell1'] = value['id']
+                    elif value['key'] == str(summoner2Id):
+                        spells['spell2'] = value['id']
+                    if spells['spell1'] != '' and spells['spell2'] != '':
+                        break
+            perks = {"perk": participant['perks']['styles'][0]['selections'][0]['perk'],
+                     "perkStyle": participant['perks']['styles'][1]['style']}
+            items = [participant['item0'], participant['item1'], participant['item2'],
+                     participant['item3'], participant['item4'], participant['item5'], participant['item6']]
+            kills = participant['kills']
+            deaths = participant['deaths']
+            assists = participant['assists']
+            total_damage_dealt_to_champions = participant['totalDamageDealtToChampions']
+            total_damage_taken = participant['totalDamageTaken']
+            if team_id == 100:
+                for blue_user in blue_team:
+                    if blue_user['summoner_name'] == summoner_name:
+                        rank = blue_user['rank']
+                        return_blue_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'spells': spells, 'perks': perks, 'items': items, 'kills': kills,
+                                                 'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken})
+                        break
+            else:
+                for red_user in red_team:
+                    if red_user['summoner_name'] == summoner_name:
+                        rank = red_user['rank']
+                        return_red_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'spells': spells, 'perks': perks, 'items': items, 'kills': kills,
+                                                'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken})
+                        break
+
+    return {'red': return_red_team, 'blue': return_blue_team}
