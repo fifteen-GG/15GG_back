@@ -85,7 +85,7 @@ async def get_match_average_data(puuid: str):
 
     # 랭겜 이력이 없으면 ValueError
     if (match_list_len == 0):
-        raise ValueError
+        return None
 
     request_list = [get_match_data(match_id, client)
                     for match_id in match_list]
@@ -323,9 +323,6 @@ async def get_match_preview(match_id: str):
 
 @router.get('/match/detail/{match_id}')
 async def get_match_detail(match_id: str):
-    return_value = []
-    red_team = {}
-    blue_team = {}
     red_participants = []
     blue_participants = []
     red_avg = {'golds': 0, 'level': 0, 'kills': 0}
