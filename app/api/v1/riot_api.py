@@ -119,14 +119,12 @@ async def get_match_average_data(puuid: str):
             else:
                 champion_dict['wins'] = 0
             champions.append(champion_dict)
+        if user_data['teamPosition'] in team_position:
+            team_position[user_data['teamPosition']] += 1
+        else:
+            team_position[user_data['teamPosition']] = 1
     sorted_champions = sorted(champions, key=lambda champion: (
         champion['counts'], champion['wins']), reverse=True)
-
-    if user_data['teamPosition'] in team_position:
-        team_position[user_data['teamPosition']] += 1
-    else:
-        team_position[user_data['teamPosition']] = 1
-
     prefer_position = max(team_position, key=team_position.get)
     position_rate = math.floor(
         team_position[prefer_position] / match_list_len * 100)
