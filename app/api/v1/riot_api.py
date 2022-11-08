@@ -276,8 +276,10 @@ async def get_summoner(summoner_name: str):
     summoner_info['level'] = summoner_basic_info['summonerLevel']
     summoner_info['profileIconId'] = summoner_basic_info['profileIconId']
 
-    summoner_league_info = await get_summoner_league_info(summoner_id)
-
+    request_list = [get_summoner_league_info(
+        summoner_id), get_match_average_data(puuid)]
+    response = await asyncio.gather(*request_list)
+    summoner_league_info = response[0]
     try:
         summoner_info['flex'] = summoner_league_info['RANKED_FLEX_SR']
     except KeyError:
@@ -299,14 +301,13 @@ async def get_summoner(summoner_name: str):
         set_dictionary(summoner_info, none_list, avg_key_list, key_list)
         return summoner_info
 
-    match_average_data = await get_match_average_data(puuid)
+    match_average_data = response[1]
     set_dictionary(summoner_info, match_average_data, avg_key_list, key_list)
     return summoner_info
 
 
 @router.get('/user/match_list/{summoner_name}')
 async def get_match_info(summoner_name: str, page: str):
-    start = time.time()
     summoner_basic_info = await get_summoner_basic_info(summoner_name)
     puuid = summoner_basic_info['puuid']
     match_info = await get_match_list(puuid, page)
@@ -322,10 +323,13 @@ async def get_match_preview(match_id: str):
 
 @router.get('/match/detail/{match_id}')
 async def get_match_detail(match_id: str):
-    red_team = []
-    blue_team = []
-    return_red_team = []
-    return_blue_team = []
+    return_value = []
+    red_team = {}
+    blue_team = {}
+    red_participants = []
+    blue_participants = []
+    red_avg = {'golds': 0, 'level': 0, 'kills': 0}
+    blue_avg = {'golds': 0, 'level': 0, 'kills': 0}
     async with httpx.AsyncClient() as client:
         url = 'http://fow.kr/api_new_ajax.php'
         match_id_num = int(match_id.split('_')[1])
@@ -344,11 +348,11 @@ async def get_match_detail(match_id: str):
             except:
                 continue
             if user_row.find('td')['class'][0] == 't_purple':
-                red_team.append(
-                    {'summoner_name': summoner_name, 'rank': rank})
+                red_participants.append(
+                    {'summonerName': summoner_name, 'rank': rank})
             else:
-                blue_team.append(
-                    {'summoner_name': summoner_name, 'rank': rank})
+                blue_participants.append(
+                    {'summonerName': summoner_name, 'rank': rank})
     async with httpx.AsyncClient() as client:
         match_info = await get_match_data(match_id, client)
         participants = match_info['info']['participants']
@@ -381,18 +385,21 @@ async def get_match_detail(match_id: str):
             total_damage_taken = participant['totalDamageTaken']
             win = participant['win']
             if team_id == 100:
-                for blue_user in blue_team:
-                    if blue_user['summoner_name'] == summoner_name:
-                        rank = blue_user['rank']
-                        return_blue_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'champLevel': champ_level, 'spells': spells, 'perks': perks, 'items': items, 'goldEarned': gold_earned, 'kills': kills,
-                                                 'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken, 'win': win})
+                blue_avg['golds'] += gold_earned
+                blue_avg['kills'] += kills
+                blue_avg['level'] += champ_level
+                for index, blue_participant in enumerate(blue_participants):
+                    if blue_participant['summonerName'] == summoner_name:
+                        blue_participants[index] = {'summonerName': summoner_name, 'championName': champion_name, 'rank': blue_participant['rank'], 'champLevel': champ_level, 'spells': spells, 'perks': perks, 'items': items, 'goldEarned': gold_earned, 'kills': kills,
+                                                    'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken, 'win': win}
                         break
             else:
-                for red_user in red_team:
-                    if red_user['summoner_name'] == summoner_name:
-                        rank = red_user['rank']
-                        return_red_team.append({'summonerName': summoner_name, 'championName': champion_name, 'rank': rank, 'champLevel': champ_level, 'spells': spells, 'perks': perks, 'items': items, 'goldEarned': gold_earned, 'kills': kills,
-                                                'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken, 'win': win})
+                red_avg['golds'] += gold_earned
+                red_avg['kills'] += kills
+                red_avg['level'] += champ_level
+                for index, red_participant in enumerate(red_participants):
+                    if red_participant['summonerName'] == summoner_name:
+                        red_participants[index] = {'summonerName': summoner_name, 'championName': champion_name, 'rank': blue_participant['rank'], 'champLevel': champ_level, 'spells': spells, 'perks': perks, 'items': items, 'goldEarned': gold_earned, 'kills': kills,
+                                                   'deaths': deaths, 'assists': assists, 'totalDamageDealtToChampions': total_damage_dealt_to_champions, 'totalDamageTake': total_damage_taken, 'win': win}
                         break
-
-    return {'red': return_red_team, 'blue': return_blue_team}
+    return [{'team': 'red', 'teamAvgData': {'golds': red_avg['golds']/5, 'kills':red_avg['kills']/5, 'level':red_avg['level']/5}, 'participants': red_participants}, {'team': 'blue', 'teamAvgData': {'golds': blue_avg['golds']/5, 'kills':blue_avg['kills']/5, 'level':blue_avg['level']/5}, 'participants': blue_participants}]
