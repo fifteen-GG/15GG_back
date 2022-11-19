@@ -1,5 +1,3 @@
-from typing import Optional, List
-
 from sqlalchemy.orm import Session
 from app.crud.base import CRUDBase
 from app.models.train_game import TrainGame
