@@ -12,6 +12,7 @@ httpx = "*"
 websockets = "*"
 gunicorn = "*"
 pika = "*"
+aio-pika = "*"
 
 [dev-packages]
 autopep8 = "*"
