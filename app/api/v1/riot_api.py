@@ -382,6 +382,7 @@ async def get_match_info(summoner_name: str, page: str, db: Session = Depends(ge
         if len(participant_list) < 5:
             raise Exception('There is no cached game.')
         for participant in participant_list:
+            print(participant.match_id)
             match_info = crud.match.get_match_info(db, participant.match_id)
             try:
                 kda = round(
@@ -396,10 +397,11 @@ async def get_match_info(summoner_name: str, page: str, db: Session = Depends(ge
                                     'kda': kda, 'cs': participant.cs,
                                     'cs_per_min': round(participant.cs / (match_info.game_duration / 60), 1),
                                     'vision_wards_bought_in_game': participant.vision_wards_bought_in_game,
-                                    'items': [participant.item1, participant.item2, participant.item3, participant.item4, participant.item5, participant.item6, participant.item7],
+                                    'items': [participant.item0, participant.item1, participant.item2, participant.item3, participant.item4, participant.item5, participant.item6],
                                     'spells': {'spell1': participant.spell1, 'spell2': participant.spell2, 'perks': {'perk': participant.perk, 'perk_style': participant.perk_style}}
                                     })
     except:
+        print("fuck")
         puuid = response['puuid']
         user_match_info = await get_match_list(puuid, page, db)
 
@@ -419,7 +421,6 @@ async def get_match_detail(match_id: str, db: Session = Depends(get_db)):
             participants = crud.participant.get_participant_by_match_id(
                 db, match_id)
         except:
-            print("jlaskdf")
             match_info = await get_match_data(match_id, client)
             participants = match_info['info']['participants']
         red_participants = []
