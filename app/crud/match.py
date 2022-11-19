@@ -10,7 +10,6 @@ class CrudMatch(CRUDBase[Match, MatchCreate, MatchUpdate]):
         try:
             match_info = db.query(self.model).filter(
                 self.model.id == match_id).one()
-            print(match_info)
             return match_info
         except:
             return

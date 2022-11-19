@@ -26,7 +26,6 @@ class CrudParticipant(CRUDBase[Participant, ParticipantCreate, ParticipantUpdate
                 raise Exception
             return participant_list
         except:
-            print("jhello")
             raise Exception
 
     def create_participant(self, db: Session, participant_info):
