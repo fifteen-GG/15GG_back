@@ -1,49 +1,144 @@
 import asyncio
 import json
 import random
+import functools
+import aio_pika
+import aio_pika.abc
 from fastapi import APIRouter, WebSocket
 from starlette.websockets import WebSocketDisconnect
+
+from app import crud
+from app.database.session import SessionLocal
 
 router = APIRouter()
 
 
-async def echo_message(websocket: WebSocket):
+async def block_io(websocket: WebSocket):
+    _ = await websocket.receive_text()
+
+
+async def on_message(message: aio_pika.IncomingMessage, websocket: WebSocket):
+    async with message.process():
+        await websocket.send_json(json.loads(
+            message.body.decode('UTF-8').replace("'", "\"")))
+
+
+async def analyze(
+        websocket: WebSocket, exchange: aio_pika.Exchange, match_id: str):
+    result: dict = await websocket.receive_json()
+    # TODO: Caculate win rate from AI model
+    result['blue_team_win_rate'] = round(random.uniform(0, 1), 3)
+    result = bytes(json.dumps(result, ensure_ascii=False), 'UTF-8')
+    result = aio_pika.Message(
+        result, content_encoding='UTF-8')
+    await exchange.publish(message=result, routing_key=match_id)
+
+
+async def create_exchange(websocket: WebSocket, connection):
     data = await websocket.receive_text()
-    await websocket.send_text(f"Message text was: {data}")
+    channel = connection.channel()
+    channel.exchange_declare(
+        exchange='direct_logs', exchange_type='direct')
+    tmp_queue = channel.queue_declare(queue='', exclusive=True)
+    queue_name = tmp_queue.method.queue
+    channel.queue_bind(exchange='direct_logs',
+                       queue=queue_name, routing_key=data)
+    print('Exchange declared')
+    print(data)
 
 
-async def send_result(websocket: WebSocket):
-    with open('./app/assets/sample_result.json', encoding='UTF-8') as file:
-        data = json.load(file)
-        timestamp, index = 33, 0
-        while True:
-            timestamp += 1
-            await asyncio.sleep(1)
-            try:
-                if int(data[index]['timestamp']) == timestamp:
-                    await websocket.send_json(
-                        {**data[index],
-                            'blue_team_win_rate': round(random.uniform(0, 1), 3)}
-                    )
-                    index += 1
-            except IndexError:
-                await websocket.send_text('Game ended')
+@router.websocket('/analyze')
+async def analyze_game(websocket: WebSocket):
+    '''
+    Websocket endpoint for analyzing game.
+    When a DataNashor client connects to this endpoint,
+    it will create a new exchange and bind it to the match_id.
 
-
-@router.websocket('')
-async def websocket_endpoint(websocket: WebSocket):
+    All the match data parsed from DataNashor will be passed to the AI model,
+    the the result will be broadcasted to the clients connected.
+    '''
     await websocket.accept()
+    result = []
     try:
+        match_id = await websocket.receive_text()
+        connection = await aio_pika.connect('amqp://guest:guest@localhost/')
+        channel = await connection.channel()
+        exchange = await channel.declare_exchange(
+            name='game_logs', type='direct')
+        print(f'Exchange {match_id} declared')
+        # await exchange.publish(message=, routing_key=match_id)
         while True:
-            echo_message_task = asyncio.create_task(echo_message(websocket))
-            send_time_task = asyncio.create_task(send_result(websocket))
+            producer_task = asyncio.create_task(
+                analyze(websocket, exchange, match_id))
             done, pending = await asyncio.wait(
-                {echo_message_task, send_time_task},
+                {producer_task},
                 return_when=asyncio.FIRST_COMPLETED,
             )
             for task in pending:
                 task.cancel()
             for task in done:
                 task.result()
+    except WebSocketDisconnect:
+        print(result)
+        await connection.close()
+
+
+@router.websocket('/match/{match_id}')
+async def get_match_data(websocket: WebSocket, match_id: str):
+    '''
+    Websocket endpoint for getting match data.
+    It will listen to the brodacast messages of match data
+    from the exchange bound to the match_id.
+    '''
+    await websocket.accept()
+    try:
+        connection = await aio_pika.connect('amqp://guest:guest@localhost/')
+        channel = await connection.channel()
+        exchange = await channel.declare_exchange(
+            name='game_logs', type='direct')
+        queue = await channel.declare_queue(name='', exclusive=True)
+        await queue.bind(exchange, routing_key=match_id)
+
+        while True:
+            consume = queue.consume(functools.partial(
+                on_message, websocket=websocket))
+
+            block_io_task = asyncio.create_task(block_io(websocket))
+            consumer_task = asyncio.create_task(consume)
+
+            done, pending = await asyncio.wait(
+                {block_io_task, consumer_task},
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            for task in pending:
+                task.cancel()
+            for task in done:
+                task.result()
+    except WebSocketDisconnect:
+        await connection.close()
+
+
+@router.websocket('/wait/{code}')
+async def wait_analyis(websocket: WebSocket, code: str):
+    '''
+    Websocket endpoint that waits for a match analysis to start.
+    '''
+    await websocket.accept()
+    db = SessionLocal()
+    validated = False
+    try:
+        while True:
+            try:
+                code_obj = crud.code.get(db, code).value
+                await websocket.send_text(code_obj)
+                validated = True
+            except AttributeError:
+                if not validated:
+                    await websocket.send_text('Code not found')
+                    raise WebSocketDisconnect
+                else:
+                    await websocket.send_text('Code validated')
+                    raise WebSocketDisconnect
+            await asyncio.sleep(1)
     except WebSocketDisconnect:
         await websocket.close()
