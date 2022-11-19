@@ -56,7 +56,6 @@ async def get_summoner_league_info(summoner_id: str):
             'tier': league_info['tier'],
             'rank': league_info['rank'],
             'lp': league_info['leaguePoints'],
-            'win_rate': math.floor(league_info['wins'] / (league_info['wins'] + league_info['losses']) * 100),
             'wins': league_info['wins'],
             'losses': league_info['losses']
         }
@@ -398,23 +397,23 @@ async def get_match_info(summoner_name: str, page: str, db: Session = Depends(ge
                                     'cs_per_min': round(participant.cs / (match_info.game_duration / 60), 1),
                                     'vision_wards_bought_in_game': participant.vision_wards_bought_in_game,
                                     'items': [participant.item0, participant.item1, participant.item2, participant.item3, participant.item4, participant.item5, participant.item6],
-                                    'spells': {'spell1': participant.spell1, 'spell2': participant.spell2, 'perks': {'perk': participant.perk, 'perk_style': participant.perk_style}}
+                                    'spells': {'spell1': participant.spell1, 'spell2': participant.spell2},
+                                    'perks': {'perk': participant.perk, 'perk_style': participant.perk_style}
                                     })
     except:
-        print("fuck")
         puuid = response['puuid']
         user_match_info = await get_match_list(puuid, page, db)
 
     return user_match_info
 
 
-@router.get('/match/preview/{match_id}')
+@ router.get('/match/preview/{match_id}')
 async def get_match_preview(match_id: str):
     match_preview_info = await get_match_preview_info(match_id)
     return match_preview_info
 
 
-@router.get('/match/detail/{match_id}')
+@ router.get('/match/detail/{match_id}')
 async def get_match_detail(match_id: str, db: Session = Depends(get_db)):
     async with httpx.AsyncClient() as client:
         try:
@@ -510,4 +509,4 @@ async def get_match_detail(match_id: str, db: Session = Depends(get_db)):
                 red_avg['level'] += champ_level
                 red_participants.append({'summoner_name': summoner_name, 'champion_name': champion_name, 'rank': 'gold', 'champ_level': champ_level, 'spells': spells, 'perks': perks, 'items': items, 'gold_earned': gold_earned, 'kills': kills,
                                          'deaths': deaths, 'assists': assists, 'total_damage_dealt_to_champions': total_damage_dealt_to_champions, 'total_damage_taken': total_damage_taken, 'win': win})
-        return [{'team': 'red', 'win': red_participants[0]['win'], 'team_avg_data': {'golds': red_avg['golds']/5, 'kills':red_avg['kills']/5, 'level':red_avg['level']/5}, 'participants': red_participants}, {'team': 'blue', 'win': blue_participants[0]['win'], 'team_avg_data': {'golds': blue_avg['golds']/5, 'kills':blue_avg['kills']/5, 'level':blue_avg['level']/5}, 'participants': blue_participants}]
+        return [{'team': 'red', 'win': red_participants[0]['win'], 'team_avg_data': {'golds': red_avg['golds']/5, 'kills': red_avg['kills']/5, 'level': red_avg['level']/5}, 'participants': red_participants}, {'team': 'blue', 'win': blue_participants[0]['win'], 'team_avg_data': {'golds': blue_avg['golds']/5, 'kills': blue_avg['kills']/5, 'level': blue_avg['level']/5}, 'participants': blue_participants}]
