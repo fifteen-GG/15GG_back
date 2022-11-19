@@ -1,4 +1,3 @@
-from codecs import ignore_errors
 from sqlalchemy import Column, Integer, String, Boolean
 
 from app.database.base_class import Base

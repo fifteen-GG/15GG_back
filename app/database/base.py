@@ -2,3 +2,8 @@ from app.database.base_class import Base
 from app.models.code import Code
 from app.models.game import Game
 from app.models.train_game import TrainGame
+from app.models.summoner import Summoner
+from app.models.rank import Rank
+from app.models.champion import Champion
+from app.models.participant import Participant
+from app.models.match import Match
