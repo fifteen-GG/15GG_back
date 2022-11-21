@@ -10,5 +10,7 @@ class Match(Base):
     queue_mode = Column(String)
     game_duration = Column(Integer)
     created_at = Column(DateTime)
+    status = Column(Integer)
 
     participant = relationship("Participant", back_populates="match")
+    code = relationship("Code", back_populates="match")

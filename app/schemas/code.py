@@ -5,6 +5,7 @@ from pydantic import BaseModel
 class CodeBase(BaseModel):
     value: str
     created_at: datetime
+    match_id: str
 
 
 class CodeCreate(CodeBase):

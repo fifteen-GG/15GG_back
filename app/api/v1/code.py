@@ -37,3 +37,8 @@ def code_validate(*, db: Session = Depends(get_db), value: str):
             detail='Code has expired')
 
     return {'message': 'Code validated'}
+
+
+@router.post('/update/match_id')
+def update_match_id(*, db: Session = Depends(get_db), code: str, match_id: str):
+    crud.code.update_code(db, code, match_id)
