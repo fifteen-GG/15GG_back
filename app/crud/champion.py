@@ -5,7 +5,7 @@ from app.schemas.champion import ChampionCreate, ChampionUpdate
 
 
 class CRUDChampion(CRUDBase[Champion, ChampionCreate, ChampionUpdate]):
-    # Declare model specific CRUD operation methods.
+
     def create_champion(self, db: Session, summoner_info):
         summoner_id = summoner_info['id']
         try:
@@ -25,7 +25,9 @@ class CRUDChampion(CRUDBase[Champion, ChampionCreate, ChampionUpdate]):
                 return
         return
 
-    def update_champiion(self, db: Session):
+    def remove_champion(self, db: Session, summoner_id: str):
+        db.query(self.model).filter(self.model.summoner_id ==
+                                    summoner_id).delete(synchronize_session=False)
         return
 
 
