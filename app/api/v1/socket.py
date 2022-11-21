@@ -24,14 +24,16 @@ async def on_message(message: aio_pika.IncomingMessage, websocket: WebSocket):
 
 
 async def analyze(
-        websocket: WebSocket, exchange: aio_pika.Exchange, match_id: str):
-    result: dict = await websocket.receive_json()
+        websocket: WebSocket, exchange: aio_pika.Exchange,
+        match_id: str, result: dict):
+    new_data: dict = await websocket.receive_json()
     # TODO: Caculate win rate from AI model
-    result['blue_team_win_rate'] = round(random.uniform(0, 1), 3)
-    result = bytes(json.dumps(result, ensure_ascii=False), 'UTF-8')
-    result = aio_pika.Message(
-        result, content_encoding='UTF-8')
-    await exchange.publish(message=result, routing_key=match_id)
+    new_data['blue_team_win_rate'] = round(random.uniform(0, 1), 3)
+    result['match_data'].append(new_data)
+    response = bytes(json.dumps(result, ensure_ascii=False), 'UTF-8')
+    response = aio_pika.Message(
+        response, content_encoding='UTF-8')
+    await exchange.publish(message=response, routing_key=match_id)
 
 
 async def create_exchange(websocket: WebSocket, connection):
@@ -58,18 +60,17 @@ async def analyze_game(websocket: WebSocket):
     the the result will be broadcasted to the clients connected.
     '''
     await websocket.accept()
-    result = []
     try:
         match_id = await websocket.receive_text()
+        result = {'match_id': match_id, 'match_data': []}
         connection = await aio_pika.connect('amqp://guest:guest@localhost/')
         channel = await connection.channel()
         exchange = await channel.declare_exchange(
             name='game_logs', type='direct')
         print(f'Exchange {match_id} declared')
-        # await exchange.publish(message=, routing_key=match_id)
         while True:
             producer_task = asyncio.create_task(
-                analyze(websocket, exchange, match_id))
+                analyze(websocket, exchange, match_id, result))
             done, pending = await asyncio.wait(
                 {producer_task},
                 return_when=asyncio.FIRST_COMPLETED,
