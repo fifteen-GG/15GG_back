@@ -62,6 +62,13 @@ class CRUDSummoner(CRUDBase[Summoner, SummonerCreate, SummonerUpdate]):
             db.add(summoner)
             db.commit()
         except:
+            db.rollback()
+            try:
+                db.query(self.model).filter(func.lower(self.model.name)
+                                            == summoner_info['name'].lower()).update({'level': summoner.level, 'profile_icon_id': summoner.profile_icon_id, 'kda_avg': summoner.kda_avg, 'kills_avg': summoner.kills_avg, 'deaths_avg': summoner.deaths_avg, 'assists_avg': summoner.assists_avg, 'prefer_position': prefer_position, 'prefer_position_rate': prefer_position_rate}, synchronize_session=False)
+            except Exception as e:
+                print(e)
+                return
             return
         return
 
