@@ -1,3 +1,6 @@
+import os
+from ast import And
+from audioop import reverse
 import asyncio
 from curses import pair_content
 import datetime
@@ -9,6 +12,8 @@ from app.models.champion import Champion
 from app.models.match import Match
 from app.models.participant import Participant
 import httpx
+from typing import Union
+import operator
 from fastapi import HTTPException, APIRouter, Depends
 from dotenv import dotenv_values
 import time
@@ -19,13 +24,13 @@ from app.database.session import SessionLocal
 from sqlalchemy import func
 
 
-env = dotenv_values('.env')
+
 router = APIRouter()
 
 origins = ['*']
 
 HEADER = {
-    'X-Riot-Token': env['RIOT_TOKEN']
+    'X-Riot-Token': os.environ.get('RIOT_TOKEN')
 }
 
 RIOT_API_ROOT_KR = 'https://kr.api.riotgames.com/lol'
