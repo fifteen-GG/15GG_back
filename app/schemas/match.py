@@ -11,6 +11,7 @@ class MatchBase(BaseModel):
     queue_mode = str
     game_duration = int
     created_at = date
+    status = bool
 
 
 class MatchCreate(MatchBase):

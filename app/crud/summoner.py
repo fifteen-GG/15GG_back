@@ -13,7 +13,7 @@ class CRUDSummoner(CRUDBase[Summoner, SummonerCreate, SummonerUpdate]):
     # Declare model specific CRUD operation methods.
     def get_summoner(self, db: Session, summoner_name: str):
         summoner_info = db.query(self.model).filter(
-            func.lower(self.model.name) == summoner_name.lower()).one()
+            func.replace(func.lower(self.model.name), " ", "") == summoner_name.lower().replace(" ", "")).one()
         rank_list = db.query(Rank).filter(
             summoner_info.id == Rank.summoner_id).all()
         flex = None
@@ -64,8 +64,8 @@ class CRUDSummoner(CRUDBase[Summoner, SummonerCreate, SummonerUpdate]):
         except:
             db.rollback()
             try:
-                db.query(self.model).filter(func.lower(self.model.name)
-                                            == summoner_info['name'].lower()).update({'level': summoner.level, 'profile_icon_id': summoner.profile_icon_id, 'kda_avg': summoner.kda_avg, 'kills_avg': summoner.kills_avg, 'deaths_avg': summoner.deaths_avg, 'assists_avg': summoner.assists_avg, 'prefer_position': prefer_position, 'prefer_position_rate': prefer_position_rate}, synchronize_session=False)
+                db.query(self.model).filter(func.replace(func.lower(self.model.name), " ", "")
+                                            == summoner_info['name'].lower().replace(" ", "")).update({'level': summoner.level, 'profile_icon_id': summoner.profile_icon_id, 'kda_avg': summoner.kda_avg, 'kills_avg': summoner.kills_avg, 'deaths_avg': summoner.deaths_avg, 'assists_avg': summoner.assists_avg, 'prefer_position': prefer_position, 'prefer_position_rate': prefer_position_rate}, synchronize_session=False)
             except Exception as e:
                 print(e)
                 return

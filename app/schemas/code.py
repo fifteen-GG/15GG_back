@@ -5,11 +5,11 @@ from pydantic import BaseModel
 class CodeBase(BaseModel):
     value: str
     created_at: datetime
+    match_id: str | None
 
 
 class CodeCreate(CodeBase):
-    value: str
-    created_at: datetime
+    pass
 
 
 class CodeUpdate(CodeBase):

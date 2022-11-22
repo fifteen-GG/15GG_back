@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.database.session import SessionLocal
+from sqlalchemy import func
 
 
 env = dotenv_values('.env')
@@ -161,7 +162,6 @@ async def get_match_average_data(puuid: str):
 
 async def get_match_data_list(db: Session, response, puuid: str):
     match_info_list = []
-
     for match_info in response:
         flag = False
         match_id = match_info['metadata']['matchId']
@@ -320,7 +320,6 @@ async def get_summoner_riot(summoner_name, db: Session, mode: str):
     }
 
     summoner_basic_info = await get_summoner_basic_info(summoner_name)
-
     return_summoner_info['id'] = summoner_basic_info['id']
     return_summoner_info['puuid'] = summoner_basic_info['puuid']
     return_summoner_info['name'] = summoner_basic_info['name']
@@ -508,7 +507,7 @@ async def update_cache(summoner_name: str, db: Session = Depends(get_db)):
     summoner_info = await get_summoner_riot(summoner_name, db, 'u')
     puuid = summoner_info['puuid']
     cached_recent_match = db.query(Participant).filter(
-        Participant.summoner_name == summoner_name).order_by(Participant.match_id.desc()).first()
+        func.replace(func.lower(Participant.summoner_name), " ", "") == summoner_name.lower().replace(" ", "")).order_by(Participant.match_id.desc()).first()
     async with httpx.AsyncClient() as client:
         target_match_list = []
         url = RIOT_API_ROOT_ASIA + '/match/v5/matches/by-puuid/' + \
