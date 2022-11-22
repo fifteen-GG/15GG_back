@@ -13,7 +13,7 @@ class CrudParticipant(CRUDBase[Participant, ParticipantCreate, ParticipantUpdate
     def get_participant_list(self, db: Session, page: str, summoner_name: str):
         try:
             participant_list = db.query(self.model).filter(
-                func.lower(self.model.summoner_name) == summoner_name.lower()).order_by(self.model.match_id.desc()).offset((int(page) - 1) * 5).limit(5).all()
+                func.replace(func.lower(self.model.summoner_name), " ", "") == summoner_name.lower().replace(" ", "")).order_by(self.model.match_id.desc()).offset((int(page) - 1) * 5).limit(5).all()
             return participant_list
         except:
             return

@@ -12,7 +12,7 @@ class CrudMatch(CRUDBase[Match, MatchCreate, MatchUpdate]):
                 self.model.id == match_id).one()
             return match_info
         except:
-            return
+            raise Exception
 
     def create_match(self, db: Session, match_info):
         match_data = Match(

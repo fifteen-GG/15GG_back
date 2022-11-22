@@ -15,28 +15,26 @@ class CRUDCode(CRUDBase[Code, CodeCreate, CodeUpdate]):
         code = generate_code()
         if len(db.query(self.model).filter_by(value=code).all()) > 0:
             code = generate_code()
-        db_obj = Code(value=code, match_id='KR_6226957014',
+        db_obj = Code(value=code, match_id=None,
                       created_at=datetime.now())
         try:
             db.add(db_obj)
             db.commit()
         except:
             db.rollback()
-            print("hello")
         return db_obj
 
     def validate_code(self, db: Session, value: str):
         obj = db.query(self.model).filter_by(value=value).all()
         return obj
 
-    def update_code(self, db: Session, code: str, match_id: str):
+    def code_update(self, db: Session, code: str, match_id: str):
         try:
             db.query(self.model).filter(self.model.value == code).update(
-                {self.model.match_id: match_id}, synchronize_session=False)
+                {'match_id': match_id}, synchronize_session=False)
+            db.commit()
         except Exception as e:
-            print(e)
-        res = db.query(self.model).filter(self.model.value == code).all()
-        print(res[0].match_id)
+            db.rollback()
 
 
 code = CRUDCode(Code)
