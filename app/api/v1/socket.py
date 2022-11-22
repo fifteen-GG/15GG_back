@@ -9,6 +9,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app import crud
 from app.database.session import SessionLocal
+from app.core import settings
 
 router = APIRouter()
 
@@ -63,7 +64,7 @@ async def analyze_game(websocket: WebSocket):
     try:
         match_id = await websocket.receive_text()
         result = {'match_id': match_id, 'match_data': []}
-        connection = await aio_pika.connect('amqp://guest:guest@localhost/')
+        connection = await aio_pika.connect(settings.AMQP_HOST)
         channel = await connection.channel()
         exchange = await channel.declare_exchange(
             name='game_logs', type='direct')
@@ -93,7 +94,7 @@ async def get_match_data(websocket: WebSocket, match_id: str):
     '''
     await websocket.accept()
     try:
-        connection = await aio_pika.connect('amqp://guest:guest@localhost/')
+        connection = await aio_pika.connect(settings.AMQP_HOST)
         channel = await connection.channel()
         exchange = await channel.declare_exchange(
             name='game_logs', type='direct')

@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = 'app_15gg'
     SECRET_KEY: str = secrets.token_urlsafe(32)
     SQLALCHEMY_DATABASE_URI: str = DB_URI
+    AMQP_HOST: str = env.get('AMQP_HOST')
 
     class Config:
         env_file = '.env'
