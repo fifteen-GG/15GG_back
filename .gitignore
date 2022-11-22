@@ -8,3 +8,6 @@ test.db
 .idea/
 
 .env
+
+client_secret_drive.json
+storage.json
