@@ -1,0 +1,30 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = {extras = ["all"], version = "*"}
+sqlalchemy = "*"
+psycopg2 = "*"
+alembic = "*"
+httpx = "*"
+pika = "*"
+aio-pika = "*"
+pandas = "*"
+bs4 = "*"
+pydrive = "*"
+google-api-python-client = "*"
+httplib2 = "*"
+oauth2client = "*"
+schedule = "*"
+aioschedule = "*"
+fastapi-utils = "*"
+gunicorn = "*"
+
+[dev-packages]
+autopep8 = "*"
+pycodestyle = "*"
+
+[requires]
+python_version = "3.10"

@@ -1,1 +1,13 @@
-__pycache__
+venv/
+.vscode/
+__pycache__/
+test.db
+
+.DS_Store
+
+.idea/
+
+.env
+
+client_secret_drive.json
+storage.json
